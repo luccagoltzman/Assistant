@@ -10,7 +10,6 @@ function populateVoices() {
 
 // Função para definir a voz
 function setVoice(utterance) {
-    // Substitua 'Google português do Brasil' pelo nome da voz que você deseja usar
     const voice = voices.find(voice => voice.name === 'Google português do Brasil');
     if (voice) {
         utterance.voice = voice;
@@ -39,13 +38,13 @@ function wishMe() {
     } else if (hour >= 12 && hour < 17) {
         speak("Boa tarde moço...", 1.2);  // Fala mais rápida
     } else {
-        speak("Boa noite Sir...", 1.2);  // Fala mais rápida
+        speak("Boa noite moço...", 1.2);  // Fala mais rápida
     }
 }
 
 window.addEventListener('load', () => {
     window.speechSynthesis.onvoiceschanged = populateVoices;
-    speak("Iniciando JARVIS...", 1.2);  // Fala mais rápida
+    speak("Iniciando CANGALHA...", 1.2);  // Fala mais rápida
     wishMe();
 });
 
@@ -65,8 +64,11 @@ btn.addEventListener('click', () => {
 });
 
 function takeCommand(message) {
-    if (message.includes('hey') || message.includes('hello') || message.includes('oi') || message.includes('oi, Jarvis') || message.includes('olá, Jarvis') || message.includes('Hello, Jarvis')) {
-        speak("Olá Senhor, como posso lhe ajudar?", 1.5);  // Fala mais rápida
+    if (message.includes('hey') || message.includes('hello') || message.includes('oi') || message.includes('oi, cangalha') || message.includes('olá, cangalha') || message.includes('Hello, cangalha')) {
+        speak("Olá Senhor, como posso lhe ajudar?", 1.2);  // Fala mais rápida
+    }
+    else if (message.includes('tudo bem') || message.includes('como você está') || message.includes('beleza') || message.includes('tudo beleza') || message.includes('como você está hoje') || message.includes('como vai')) {
+        speak("Estou muito bem! E você?", 1.2);  // Fala mais rápida
     } else if (message.includes("Abrir google") || message.includes('Google')) {
         window.open("https://google.com", "_blank");
         speak("Abrindo Google", 1.2);  // Fala mais rápida
