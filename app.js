@@ -69,7 +69,11 @@ function takeCommand(message) {
     }
     else if (message.includes('tudo bem') || message.includes('como você está') || message.includes('beleza') || message.includes('tudo beleza') || message.includes('como você está hoje') || message.includes('como vai')) {
         speak("Estou muito bem! E você?", 1.2);  // Fala mais rápida
-    } else if (message.includes("Abrir google") || message.includes('Google')) {
+    }
+    else if (message.includes('tchau') || message.includes('tchau cangalha') || message.includes('até logo') || message.includes('adeus')) {
+        speak("Tem certeza? Sentirei sua falta...", 1.2);  // Fala mais rápida
+    }
+    else if (message.includes("Abrir google") || message.includes('Google')) {
         window.open("https://google.com", "_blank");
         speak("Abrindo Google", 1.2);  // Fala mais rápida
     } else if (message.includes("open youtube") || message.includes('youtube')) {

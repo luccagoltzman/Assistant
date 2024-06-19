@@ -57,6 +57,10 @@
     cursor: pointer;
 }
 
+.main .input:hover{
+    transform: scale(0.97);
+}
+
 .main .input .talk {
     background: transparent;
     outline: none;
