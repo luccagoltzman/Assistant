@@ -6,11 +6,15 @@ let voices = [];
 function populateVoices() {
     voices = window.speechSynthesis.getVoices();
     console.log(voices); // Verifique as vozes disponíveis no console
+    if (voices.length) {
+        speak("Iniciando CANGALHA...", 1.2);  // Fala mais rápida
+        wishMe();
+    }
 }
 
 // Função para definir a voz
 function setVoice(utterance) {
-    const voice = voices.find(voice => voice.name === 'Google português do Brasil');
+    const voice = voices.find(voice => voice.name === 'Microsoft Maria - Portuguese (Brazil)');
     if (voice) {
         utterance.voice = voice;
     }
@@ -34,7 +38,7 @@ function wishMe() {
     const hour = day.getHours();
 
     if (hour >= 0 && hour < 12) {
-        speak("Bom dia Boss...", 1.2);  // Fala mais rápida
+        speak("Bom dia moço...", 1.2);  // Fala mais rápida
     } else if (hour >= 12 && hour < 17) {
         speak("Boa tarde moço...", 1.2);  // Fala mais rápida
     } else {
@@ -43,9 +47,14 @@ function wishMe() {
 }
 
 window.addEventListener('load', () => {
-    window.speechSynthesis.onvoiceschanged = populateVoices;
-    speak("Iniciando CANGALHA...", 1.2);  // Fala mais rápida
-    wishMe();
+    window.speechSynthesis.onvoiceschanged = () => {
+        if (voices.length === 0) {
+            populateVoices();
+        }
+    };
+    if (voices.length === 0) {
+        populateVoices();
+    }
 });
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -70,6 +79,9 @@ function takeCommand(message) {
     else if (message.includes('tudo bem') || message.includes('como você está') || message.includes('beleza') || message.includes('tudo beleza') || message.includes('como você está hoje') || message.includes('como vai')) {
         speak("Estou muito bem! E você?", 1.2);  // Fala mais rápida
     }
+    else if (message.includes('está me escutando') || message.includes('não conseguiu me escutar')) {
+        speak("Análise... Desculpa a demora, senhor! É o TDH", 1.2);  // Fala mais rápida
+    }
     else if (message.includes('tchau') || message.includes('tchau cangalha') || message.includes('até logo') || message.includes('adeus')) {
         speak("Tem certeza? Sentirei sua falta...", 1.2);  // Fala mais rápida
     }
@@ -84,19 +96,19 @@ function takeCommand(message) {
         speak("Abrindo Linkedin...", 1.2);  // Fala mais rápida
     } else if (message.includes('what is') || message.includes('who is') || message.includes('what are')) {
         window.open(`https://www.google.com/search?q=${message.replace(" ", "+")}`, "_blank");
-        const finalText = "Isto é o que encontrei na internet sobre" + message;
+        const finalText = "Isto é o que encontrei na internet sobre " + message;
         speak(finalText, 1.2);  // Fala mais rápida
     } else if (message.includes('wikipedia')) {
         window.open(`https://en.wikipedia.org/wiki/${message.replace("wikipedia", "").trim()}`, "_blank");
-        const finalText = "Isto é o que encontrei na Wikipedia sobre" + message;
+        const finalText = "Isto é o que encontrei na Wikipedia sobre " + message;
         speak(finalText, 1.2);  // Fala mais rápida
     } else if (message.includes('Time') || message.includes('Que horas são?') || message.includes('Me diga as horas') || message.includes('horas')) {
         const time = new Date().toLocaleString(undefined, { hour: "numeric", minute: "numeric" });
-        const finalText = "São exatamente..." + time;
+        const finalText = "São exatamente " + time;
         speak(finalText, 1.2);  // Fala mais rápida
     } else if (message.includes('date') || message.includes('data') || message.includes('que dia é hoje')) {
         const date = new Date().toLocaleString(undefined, { month: "short", day: "numeric" });
-        const finalText = "A data de hoje é" + date;
+        const finalText = "A data de hoje é " + date;
         speak(finalText, 1.2);  // Fala mais rápida
     } else if (message.includes('calculator') || message.includes('calculadora')) {
         window.open('Calculator:///');
@@ -108,7 +120,7 @@ function takeCommand(message) {
         speak(finalText, 1.2);  // Fala mais rápida
     } else {
         window.open(`https://www.google.com/search?q=${message.replace(" ", "+")}`, "_blank");
-        const finalText = "Encontrei algumas informações para..." + message + " no Google";
+        const finalText = "Encontrei algumas informações para " + message + " no Google";
         speak(finalText, 1.2);  // Fala mais rápida
     }
 }
