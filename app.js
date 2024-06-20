@@ -68,7 +68,7 @@ recognition.onresult = (event) => {
 };
 
 btn.addEventListener('click', () => {
-    content.textContent = "Listening...";
+    content.textContent = "Estou ouvindo...";
     recognition.start();
 });
 
