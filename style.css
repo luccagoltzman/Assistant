@@ -51,7 +51,7 @@
     justify-content: center;
     align-items: center;
     width: 50%;
-    height: 50px;
+    height: fit-content;
     border-radius: 20px;
     background: rgb(202 253 255 / 50%);
     cursor: pointer;
@@ -92,5 +92,11 @@
 
     .main .input{
         width: 80%;
+    }
+}
+
+@media screen and (max-width: 273px){
+    .main .image-container .image img{
+        width: 155px;
     }
 }
