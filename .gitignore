@@ -1,0 +1,26 @@
+# Arquivos de ambiente
+.env
+.env.local
+.env.*.local
+
+# Dependências
+/node_modules
+/dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw? 
