@@ -483,9 +483,9 @@ async function takeCommand(message) {
             }
         } else if (message.includes("abrir câmera")) {
             try {
-                speak("Tentando abrir a câmera", 1.5);
+                speak("Tentando abrir a câmera e iniciar detecção de gestos", 1.5);
                 navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(function(stream) {
+                    .then(async function(stream) {
                         const videoElement = document.createElement('video');
                         videoElement.srcObject = stream;
                         videoElement.autoplay = true;
@@ -507,8 +507,233 @@ async function takeCommand(message) {
                             stream.getTracks().forEach(track => track.stop());
                             videoElement.remove();
                             closeButton.remove();
+                            if (window.handDetectionInterval) {
+                                clearInterval(window.handDetectionInterval);
+                            }
                         };
                         document.body.appendChild(closeButton);
+
+                        // Inicializa o modelo HandPose
+                        const model = await handpose.load();
+                        speak("Detecção de gestos ativada. Acene para receber um tchau ou feche a mão para fechar a câmera.", 1.5);
+
+                        // Canvas para desenhar as landmarks das mãos
+                        const canvas = document.createElement('canvas');
+                        canvas.style.position = 'fixed';
+                        canvas.style.top = '20px';
+                        canvas.style.right = '20px';
+                        canvas.style.width = '320px';
+                        canvas.style.height = '240px';
+                        canvas.style.zIndex = '999';
+                        document.body.appendChild(canvas);
+                        const ctx = canvas.getContext('2d');
+
+                        // Função para detectar gestos
+                        async function detectGestos() {
+                            canvas.width = videoElement.videoWidth;
+                            canvas.height = videoElement.videoHeight;
+                            
+                            // Detecta as mãos no frame atual
+                            const hands = await model.estimateHands(videoElement);
+                            
+                            if (hands.length > 0) {
+                                // Limpa o canvas
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Desenha os pontos da mão
+                                hands.forEach(hand => {
+                                    // Desenha as landmarks com cores diferentes para cada parte da mão
+                                    desenharMaoComCores(hand.landmarks, ctx);
+
+                                    // Verifica gestos
+                                    const dedosLevantados = contarDedosLevantados(hand.landmarks);
+                                    const gestos = detectarGestosEspecificos(hand.landmarks);
+                                    
+                                    // Gesto de acenar (mão aberta movendo)
+                                    if (dedosLevantados >= 4) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoTchau || agora - window.ultimoTchau > 3000) {
+                                            speak("Tchau tchau!", 1.5);
+                                            window.ultimoTchau = agora;
+                                        }
+                                    }
+                                    
+                                    // Gesto de mão fechada (punho)
+                                    if (dedosLevantados === 0) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoFechamento || agora - window.ultimoFechamento > 2000) {
+                                            speak("Fechando câmera", 1.5);
+                                            closeButton.click();
+                                            window.ultimoFechamento = agora;
+                                        }
+                                    }
+
+                                    // Gesto de OK (polegar e indicador formando círculo)
+                                    if (gestos.ok) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoOk || agora - window.ultimoOk > 2000) {
+                                            speak("OK! Tudo bem!", 1.5);
+                                            window.ultimoOk = agora;
+                                        }
+                                    }
+
+                                    // Gesto de paz e amor (indicador e médio em V)
+                                    if (gestos.paz) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoPaz || agora - window.ultimoPaz > 2000) {
+                                            speak("Paz e amor!", 1.5);
+                                            window.ultimoPaz = agora;
+                                        }
+                                    }
+
+                                    // Gesto de positivo (polegar para cima)
+                                    if (gestos.positivo) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoPositivo || agora - window.ultimoPositivo > 2000) {
+                                            speak("Muito bem!", 1.5);
+                                            window.ultimoPositivo = agora;
+                                        }
+                                    }
+
+                                    // Gesto de negativo (polegar para baixo)
+                                    if (gestos.negativo) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoNegativo || agora - window.ultimoNegativo > 2000) {
+                                            speak("Que pena!", 1.5);
+                                            window.ultimoNegativo = agora;
+                                        }
+                                    }
+
+                                    // Gesto de rock (chifres)
+                                    if (gestos.rock) {
+                                        const agora = Date.now();
+                                        if (!window.ultimoRock || agora - window.ultimoRock > 2000) {
+                                            speak("Rock and Roll!", 1.5);
+                                            window.ultimoRock = agora;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
+                        // Função para contar dedos levantados
+                        function contarDedosLevantados(landmarks) {
+                            const basepalma = landmarks[0];
+                            let dedosLevantados = 0;
+
+                            // Verifica cada dedo
+                            // Polegar
+                            const direcaoPolegar = landmarks[4][0] - landmarks[3][0];
+                            if (Math.abs(direcaoPolegar) > 20) dedosLevantados++;
+
+                            // Outros dedos
+                            const pontosDedos = [
+                                [8, 7, 6], // Indicador
+                                [12, 11, 10], // Médio
+                                [16, 15, 14], // Anelar
+                                [20, 19, 18]  // Mindinho
+                            ];
+
+                            pontosDedos.forEach(([ponta, meio, base]) => {
+                                if (landmarks[ponta][1] < landmarks[meio][1]) {
+                                    dedosLevantados++;
+                                }
+                            });
+
+                            return dedosLevantados;
+                        }
+
+                        // Função para desenhar a mão com cores diferentes para cada parte
+                        function desenharMaoComCores(landmarks, ctx) {
+                            // Cores para diferentes partes da mão
+                            const cores = {
+                                polegar: '#FF0000',
+                                indicador: '#00FF00',
+                                medio: '#0000FF',
+                                anelar: '#FFFF00',
+                                mindinho: '#FF00FF',
+                                palma: '#00FFFF'
+                            };
+
+                            // Desenha a palma
+                            ctx.beginPath();
+                            ctx.moveTo(landmarks[0][0], landmarks[0][1]);
+                            [1, 5, 9, 13, 17].forEach(i => {
+                                ctx.lineTo(landmarks[i][0], landmarks[i][1]);
+                            });
+                            ctx.closePath();
+                            ctx.strokeStyle = cores.palma;
+                            ctx.stroke();
+
+                            // Desenha cada dedo com sua cor
+                            const dedos = [
+                                { nome: 'polegar', pontos: [1, 2, 3, 4] },
+                                { nome: 'indicador', pontos: [5, 6, 7, 8] },
+                                { nome: 'medio', pontos: [9, 10, 11, 12] },
+                                { nome: 'anelar', pontos: [13, 14, 15, 16] },
+                                { nome: 'mindinho', pontos: [17, 18, 19, 20] }
+                            ];
+
+                            dedos.forEach(dedo => {
+                                ctx.beginPath();
+                                ctx.moveTo(landmarks[dedo.pontos[0]][0], landmarks[dedo.pontos[0]][1]);
+                                dedo.pontos.forEach(i => {
+                                    ctx.lineTo(landmarks[i][0], landmarks[i][1]);
+                                });
+                                ctx.strokeStyle = cores[dedo.nome];
+                                ctx.stroke();
+                            });
+                        }
+
+                        // Função para detectar gestos específicos
+                        function detectarGestosEspecificos(landmarks) {
+                            const gestos = {
+                                ok: false,
+                                paz: false,
+                                positivo: false,
+                                negativo: false,
+                                rock: false
+                            };
+
+                            // Detecta OK (distância entre polegar e indicador próxima)
+                            const distanciaOK = calcularDistancia(landmarks[4], landmarks[8]);
+                            gestos.ok = distanciaOK < 30;
+
+                            // Detecta paz (indicador e médio estendidos, outros fechados)
+                            const indicadorEstendido = landmarks[8][1] < landmarks[7][1];
+                            const medioEstendido = landmarks[12][1] < landmarks[11][1];
+                            const outrosFechados = landmarks[16][1] > landmarks[14][1] && landmarks[20][1] > landmarks[18][1];
+                            gestos.paz = indicadorEstendido && medioEstendido && outrosFechados;
+
+                            // Detecta positivo (polegar para cima)
+                            const polegarpCima = landmarks[4][1] < landmarks[3][1] && 
+                                                Math.abs(landmarks[4][0] - landmarks[3][0]) < 30;
+                            gestos.positivo = polegarpCima;
+
+                            // Detecta negativo (polegar para baixo)
+                            const polegarpBaixo = landmarks[4][1] > landmarks[3][1] && 
+                                                 Math.abs(landmarks[4][0] - landmarks[3][0]) < 30;
+                            gestos.negativo = polegarpBaixo;
+
+                            // Detecta rock (indicador e mindinho estendidos, outros fechados)
+                            const mindinhoEstendido = landmarks[20][1] < landmarks[19][1];
+                            const medioFechado = landmarks[12][1] > landmarks[11][1];
+                            const anelarFechado = landmarks[16][1] > landmarks[14][1];
+                            gestos.rock = indicadorEstendido && mindinhoEstendido && medioFechado && anelarFechado;
+
+                            return gestos;
+                        }
+
+                        // Função auxiliar para calcular distância entre dois pontos
+                        function calcularDistancia(ponto1, ponto2) {
+                            return Math.sqrt(
+                                Math.pow(ponto2[0] - ponto1[0], 2) + 
+                                Math.pow(ponto2[1] - ponto1[1], 2)
+                            );
+                        }
+
+                        // Inicia a detecção contínua
+                        window.handDetectionInterval = setInterval(detectGestos, 100);
                     })
                     .catch(function(err) {
                         speak("Não foi possível acessar a câmera. Verifique as permissões.", 1.5);
