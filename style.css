@@ -55,13 +55,20 @@
     border-radius: 20px;
     background: rgb(202 253 255 / 50%);
     cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 10px;
 }
 
-.main .input:hover{
+.main .input:hover {
     transform: scale(0.97);
 }
 
-.main .input .talk {
+.main .input.listening {
+    background: rgba(220, 53, 69, 0.5);
+    animation: pulse 1.5s infinite;
+}
+
+.main .input .mic-btn {
     background: transparent;
     outline: none;
     border: none;
@@ -70,19 +77,23 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 15px;
+    font-size: 20px;
     cursor: pointer;
+    color: #aed0d0;
 }
 
-.main .input .talk i {
-    font-size: 20px;
-    color: #aed0d0;
+.main .input.listening .mic-btn {
+    color: #ffffff;
 }
 
 .main .input .content {
     color: #aed0d0;
     font-size: 15px;
     margin-right: 20px;
+}
+
+.main .input.listening .content {
+    color: #ffffff;
 }
 
 @media screen and (max-width: 768px){
@@ -99,4 +110,59 @@
     .main .image-container .image img{
         width: 155px;
     }
+}
+
+.mic-btn {
+    font-size: 2rem;
+    padding: 1rem;
+    border: none;
+    border-radius: 50%;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 150px;
+}
+
+.mic-btn:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+}
+
+.mic-btn.listening {
+    background: #dc3545;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    70% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+.mic-btn i {
+    font-size: 20px;
+}
+
+.mic-btn .timer {
+    font-family: monospace;
+    font-size: 18px;
+    color: white;
+    margin-left: 10px;
+}
+
+.mic-btn.listening .timer {
+    color: #ffffff;
 }
