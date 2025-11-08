@@ -6,17 +6,31 @@ import { HistoryManager } from '../utils/history.js';
  * Gerenciador de comandos
  */
 export class CommandManager {
-    constructor(speechService, uiService) {
+    constructor(speechService, uiService, webSearchService = null) {
         this.speechService = speechService;
         this.uiService = uiService;
+        this.webSearchService = webSearchService;
+        this.shouldSpeak = true; // Controle de fala
+    }
+
+    /**
+     * Helper para falar apenas se shouldSpeak for true
+     * @param {string} text - Texto a ser falado
+     */
+    async speakIfEnabled(text) {
+        if (this.shouldSpeak) {
+            await this.speakIfEnabled(text);
+        }
     }
 
     /**
      * Processa um comando
      * @param {string} message - Mensagem do usuário
+     * @param {boolean} shouldSpeak - Se deve falar a resposta (padrão: true)
      * @returns {Promise<boolean>} - Retorna true se o comando foi processado
      */
-    async processCommand(message) {
+    async processCommand(message, shouldSpeak = true) {
+        this.shouldSpeak = shouldSpeak; // Armazena o estado
         const lowerMessage = message.toLowerCase().trim();
 
         // Ajuda
@@ -143,12 +157,12 @@ export class CommandManager {
 
         // Volume
         if (this.matches(lowerMessage, COMMANDS.VOLUME_UP)) {
-            await this.speechService.speak('Volume aumentado');
+            await this.speakIfEnabled('Volume aumentado');
             return true;
         }
 
         if (this.matches(lowerMessage, COMMANDS.VOLUME_DOWN)) {
-            await this.speechService.speak('Volume diminuído');
+            await this.speakIfEnabled('Volume diminuído');
             return true;
         }
 
@@ -192,9 +206,22 @@ export class CommandManager {
 
         if (lowerMessage.includes('limpar histórico')) {
             HistoryManager.clear();
-            await this.speechService.speak('Histórico limpo');
+            await this.speakIfEnabled('Histórico limpo');
             this.uiService.updateContent('Histórico limpo com sucesso');
             return true;
+        }
+
+        // Busca na web
+        if (lowerMessage.includes('buscar na web') || lowerMessage.includes('pesquisar na web') || lowerMessage.includes('buscar informações')) {
+            const query = message.replace(/buscar na web|pesquisar na web|buscar informações/gi, '').trim();
+            if (query && this.webSearchService) {
+                await this.handleWebSearch(query);
+                return true;
+            } else if (!this.webSearchService) {
+                await this.speakIfEnabled('Serviço de busca na web não disponível');
+                this.uiService.updateContent('Serviço de busca na web não disponível');
+                return true;
+            }
         }
 
         return false;
@@ -212,12 +239,12 @@ export class CommandManager {
 
     async handleHelp() {
         const comandos = this.listCommands();
-        await this.speechService.speak('Aqui estão os comandos disponíveis');
+        await this.speakIfEnabled('Aqui estão os comandos disponíveis');
         this.uiService.updateContent('Comandos disponíveis:\n' + comandos);
     }
 
     async handleOpenURL(url, message) {
-        await this.speechService.speak(message);
+        await this.speakIfEnabled(message);
         window.open(url, '_blank');
     }
 
@@ -225,17 +252,17 @@ export class CommandManager {
         let url;
         if (engine === 'google') {
             url = `https://www.google.com/search?q=${encodeURIComponent(term)}`;
-            await this.speechService.speak(`Pesquisando no Google: ${term}`);
+            await this.speakIfEnabled(`Pesquisando no Google: ${term}`);
         } else if (engine === 'wikipedia') {
             url = `https://pt.wikipedia.org/wiki/${encodeURIComponent(term)}`;
-            await this.speechService.speak(`Pesquisando na Wikipedia: ${term}`);
+            await this.speakIfEnabled(`Pesquisando na Wikipedia: ${term}`);
         }
         window.open(url, '_blank');
     }
 
     async handleTime() {
         const time = new Date().toLocaleTimeString('pt-BR');
-        await this.speechService.speak(`São exatamente ${time}`);
+        await this.speakIfEnabled(`São exatamente ${time}`);
         this.uiService.updateContent(`São exatamente ${time}`);
     }
 
@@ -243,7 +270,7 @@ export class CommandManager {
         const date = new Date();
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const dateStr = date.toLocaleDateString('pt-BR', options);
-        await this.speechService.speak(`Hoje é ${dateStr}`);
+        await this.speakIfEnabled(`Hoje é ${dateStr}`);
         this.uiService.updateContent(`Hoje é ${dateStr}`);
     }
 
@@ -258,13 +285,13 @@ export class CommandManager {
             "Por que a plantinha não foi ao médico? Porque ela estava de folga!"
         ];
         const piada = piadas[Math.floor(Math.random() * piadas.length)];
-        await this.speechService.speak(piada);
+        await this.speakIfEnabled(piada);
         this.uiService.updateContent(piada);
     }
 
     async handleTheme(theme) {
         this.uiService.setTheme(theme);
-        await this.speechService.speak(`Modo ${theme === 'dark' ? 'escuro' : 'claro'} ativado`);
+        await this.speakIfEnabled(`Modo ${theme === 'dark' ? 'escuro' : 'claro'} ativado`);
     }
 
     async handleCalculate(message) {
@@ -293,29 +320,29 @@ export class CommandManager {
             const resultado = Function('"use strict";return (' + expressao + ')')();
             const resultadoFormatado = Number.isInteger(resultado) ? resultado : resultado.toFixed(4);
 
-            await this.speechService.speak(`O resultado é ${resultadoFormatado}`);
+            await this.speakIfEnabled(`O resultado é ${resultadoFormatado}`);
             this.uiService.updateContent(`${expressao} = ${resultadoFormatado}`);
         } catch (error) {
             console.error('Erro no cálculo:', error);
-            await this.speechService.speak('Desculpe, não consegui realizar esse cálculo. Por favor, tente uma expressão mais simples.');
+            await this.speakIfEnabled('Desculpe, não consegui realizar esse cálculo. Por favor, tente uma expressão mais simples.');
             this.uiService.updateContent('Erro no cálculo. Tente algo como: 2 mais 2, 10 vezes 5, raiz quadrada de 16');
         }
     }
 
     async handleTimer() {
-        await this.speechService.speak('Iniciando cronômetro');
+        await this.speakIfEnabled('Iniciando cronômetro');
         this.uiService.startTimer();
     }
 
     async handleTranslate(text) {
         const url = `https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(text)}`;
-        await this.speechService.speak('Abrindo tradutor');
+        await this.speakIfEnabled('Abrindo tradutor');
         window.open(url, '_blank');
     }
 
     async handleReminder(message) {
         const tempo = 5 * 60 * 1000; // 5 minutos
-        await this.speechService.speak(`Criando lembrete: ${message}`);
+        await this.speakIfEnabled(`Criando lembrete: ${message}`);
         setTimeout(() => {
             this.speechService.speak(`Lembrete: ${message}`);
             if ("Notification" in window && Notification.permission === "granted") {
@@ -327,7 +354,7 @@ export class CommandManager {
     async handleListVoices() {
         const vozes = this.speechService.getPortugueseVoices();
         const vozesStr = vozes.map(v => v.name).join(', ');
-        await this.speechService.speak(`Vozes disponíveis em português: ${vozesStr}`);
+        await this.speakIfEnabled(`Vozes disponíveis em português: ${vozesStr}`);
         this.uiService.updateContent('Vozes disponíveis: ' + vozesStr);
     }
 
@@ -335,10 +362,10 @@ export class CommandManager {
         const vozes = this.speechService.getPortugueseVoices();
         if (vozes.length > 0) {
             const randomVoice = vozes[Math.floor(Math.random() * vozes.length)];
-            await this.speechService.speak(`Trocando para a voz: ${randomVoice.name}`);
+            await this.speakIfEnabled(`Trocando para a voz: ${randomVoice.name}`);
             this.uiService.updateContent(`Nova voz: ${randomVoice.name}`);
         } else {
-            await this.speechService.speak('Não encontrei outras vozes em português');
+            await this.speakIfEnabled('Não encontrei outras vozes em português');
         }
     }
 
@@ -356,7 +383,7 @@ export class CommandManager {
                     url = 'calculator://';
                     message = 'Abrindo calculadora do macOS';
                 } else {
-                    await this.speechService.speak('Em dispositivos móveis, por favor use a calculadora do seu sistema');
+                    await this.speakIfEnabled('Em dispositivos móveis, por favor use a calculadora do seu sistema');
                     return;
                 }
             } else if (app === 'notepad') {
@@ -367,7 +394,7 @@ export class CommandManager {
                     url = 'textedit://';
                     message = 'Abrindo TextEdit do macOS';
                 } else {
-                    await this.speechService.speak('Desculpe, não consigo abrir o editor de texto neste sistema operacional');
+                    await this.speakIfEnabled('Desculpe, não consigo abrir o editor de texto neste sistema operacional');
                     return;
                 }
             } else if (app === 'settings') {
@@ -378,36 +405,62 @@ export class CommandManager {
                     url = 'x-apple.systempreferences://';
                     message = 'Abrindo preferências do sistema';
                 } else {
-                    await this.speechService.speak('Desculpe, não consigo abrir as configurações neste sistema operacional');
+                    await this.speakIfEnabled('Desculpe, não consigo abrir as configurações neste sistema operacional');
                     return;
                 }
             }
 
-            await this.speechService.speak(message);
+            await this.speakIfEnabled(message);
             window.open(url);
         } catch (error) {
-            await this.speechService.speak(`Não foi possível abrir o ${app}`);
+            await this.speakIfEnabled(`Não foi possível abrir o ${app}`);
         }
     }
 
     async handleCamera() {
         // Implementação da câmera será mantida no app.js principal por enquanto
         // devido à complexidade do código de detecção de gestos
-        await this.speechService.speak('Funcionalidade de câmera em desenvolvimento');
+        await this.speakIfEnabled('Funcionalidade de câmera em desenvolvimento');
     }
 
     async handleHistory() {
         const history = HistoryManager.getAll();
         if (history.length === 0) {
-            await this.speechService.speak('Não há histórico de conversas');
+            await this.speakIfEnabled('Não há histórico de conversas');
             this.uiService.updateContent('Nenhuma conversa no histórico');
         } else {
             const recent = history.slice(0, 5);
             const historyText = recent.map((entry, index) => 
                 `${index + 1}. Você: ${entry.user}\n   CANGALHA: ${entry.assistant.substring(0, 50)}...`
             ).join('\n\n');
-            await this.speechService.speak(`Você tem ${history.length} conversas no histórico. Mostrando as 5 mais recentes.`);
+            await this.speakIfEnabled(`Você tem ${history.length} conversas no histórico. Mostrando as 5 mais recentes.`);
             this.uiService.updateContent(`Histórico (${history.length} conversas):\n\n${historyText}`);
+        }
+    }
+
+    async handleWebSearch(query) {
+        if (!this.webSearchService) {
+            await this.speakIfEnabled('Serviço de busca na web não disponível');
+            this.uiService.updateContent('Serviço de busca na web não disponível');
+            return;
+        }
+
+        this.uiService.updateContent('Buscando informações na web...');
+        
+        try {
+            const results = await this.webSearchService.searchWeb(query);
+            
+            if (results) {
+                await this.speakIfEnabled(`Encontrei informações sobre ${query}`);
+                this.uiService.showRichResponse(results);
+            } else {
+                await this.speakIfEnabled('Não encontrei informações atualizadas');
+                this.uiService.updateContent(`Não encontrei informações atualizadas sobre "${query}". Tente reformular sua busca ou use o comando "pesquisar no google [termo]" para abrir o Google.`);
+            }
+        } catch (error) {
+            console.error('Erro na busca web:', error);
+            await this.speakIfEnabled('Erro ao buscar informações na web');
+            this.uiService.updateContent('Erro ao buscar informações na web. Tente novamente.');
         }
     }
 
@@ -421,6 +474,7 @@ export class CommandManager {
             "abrir twitter",
             "pesquisar no google [termo]",
             "pesquisar na wikipedia [termo]",
+            "buscar na web [termo]",
             "que horas são",
             "que dia é hoje",
             "tocar música",

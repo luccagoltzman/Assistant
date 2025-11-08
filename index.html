@@ -22,12 +22,58 @@
             </div>
             <h1>CANGALHA</h1>
             <p>Sou seu Assistente Virtual CANGALHA. Como posso ajudar você hoje?</p>
+            
+            <!-- Toggle para ativar/desativar fala da IA -->
+            <div class="voice-toggle-container">
+                <label class="voice-toggle-label" for="voice-toggle">
+                    <i class="fas fa-volume-up"></i>
+                    <span>Fala da IA</span>
+                </label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="voice-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
         </div>
         <div class="talk input" role="button" aria-label="Clique para falar com o assistente">
             <button id="talk-btn" class="mic-btn" aria-label="Microfone">
                 <i class="fas fa-microphone-alt" aria-hidden="true"></i>
             </button>
             <h1 class="content">Clique aqui para falar</h1>
+        </div>
+        
+        <!-- Campo de texto para digitação -->
+        <div class="text-input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="text-input" 
+                    class="text-input" 
+                    placeholder="Digite sua pergunta ou comando aqui..."
+                    autocomplete="off"
+                    aria-label="Campo de texto para interagir com o assistente"
+                >
+                <button id="send-btn" class="send-btn" aria-label="Enviar mensagem">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button id="toggle-input-btn" class="toggle-input-btn" aria-label="Alternar entre voz e texto">
+                    <i class="fas fa-keyboard" id="toggle-icon"></i>
+                </button>
+            </div>
+            <p class="input-hint">Ou use o botão acima para falar</p>
+        </div>
+        
+        <!-- Área de resposta rica -->
+        <div class="response-container" id="response-container" style="display: none;">
+            <div class="response-header">
+                <h3><i class="fas fa-robot"></i> Resposta do CANGALHA</h3>
+                <button class="close-response" id="close-response" aria-label="Fechar resposta">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="response-content" id="response-content">
+                <!-- Conteúdo será inserido aqui -->
+            </div>
         </div>
     </section>
     <script type="module" src="app.js"></script>

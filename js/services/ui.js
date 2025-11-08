@@ -1,5 +1,6 @@
 import { StorageManager } from '../utils/storage.js';
 import { STORAGE_KEYS } from '../config/constants.js';
+import { ContentRenderer } from '../utils/renderer.js';
 
 /**
  * Serviço de interface do usuário
@@ -9,6 +10,9 @@ export class UIService {
         this.talkContainer = document.querySelector('.talk.input');
         this.content = document.querySelector('.content');
         this.micBtn = document.querySelector('.mic-btn');
+        this.responseContainer = document.querySelector('#response-container');
+        this.responseContent = document.querySelector('#response-content');
+        this.closeResponseBtn = document.querySelector('#close-response');
         this.timerInterval = null;
         this.timerStartTime = null;
         this.init();
@@ -18,6 +22,13 @@ export class UIService {
         // Carrega tema salvo
         const savedTheme = StorageManager.get(STORAGE_KEYS.THEME, 'light');
         this.setTheme(savedTheme);
+        
+        // Configura botão de fechar resposta
+        if (this.closeResponseBtn) {
+            this.closeResponseBtn.addEventListener('click', () => {
+                this.hideResponse();
+            });
+        }
     }
 
     /**
@@ -27,6 +38,50 @@ export class UIService {
     updateContent(text) {
         if (this.content) {
             this.content.textContent = text;
+        }
+    }
+
+    /**
+     * Mostra resposta rica formatada
+     * @param {string} text - Texto da resposta
+     */
+    showRichResponse(text) {
+        if (!this.responseContainer || !this.responseContent) return;
+
+        // Renderiza o conteúdo
+        ContentRenderer.renderResponse(text, this.responseContent);
+
+        // Mostra o container com animação
+        this.responseContainer.style.display = 'block';
+        setTimeout(() => {
+            this.responseContainer.classList.add('visible');
+        }, 10);
+
+        // Scroll suave para a resposta
+        setTimeout(() => {
+            this.responseContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    }
+
+    /**
+     * Esconde a resposta rica
+     */
+    hideResponse() {
+        if (!this.responseContainer) return;
+        
+        this.responseContainer.classList.remove('visible');
+        setTimeout(() => {
+            this.responseContainer.style.display = 'none';
+        }, 300);
+    }
+
+    /**
+     * Atualiza resposta rica (para atualizações em tempo real)
+     * @param {string} text
+     */
+    updateRichResponse(text) {
+        if (this.responseContent) {
+            ContentRenderer.renderResponse(text, this.responseContent);
         }
     }
 
