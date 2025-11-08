@@ -1,24 +1,52 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100;200;300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100;200;300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+    --primary-color: #00bcd4;
+    --primary-dark: #0097a7;
+    --secondary-color: #aed0d0;
+    --background-light: #ffffff;
+    --background-dark: #1a1a1a;
+    --text-light: #324042;
+    --text-dark: #ffffff;
+    --accent-color: #dc3545;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: "Roboto Mono", monospace;
+}
+
+body {
+    font-family: "Inter", "Roboto Mono", monospace, sans-serif;
+    transition: var(--transition);
+    overflow-x: hidden;
 }
 
 .main {
     min-height: 100vh;
     position: relative;
     width: 100%;
-    background: #000;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    transition: var(--transition);
+}
+
+.main.dark {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
 }
 
 .main .image-container {
-    padding: 10px;
+    padding: 20px;
+    text-align: center;
+    animation: fadeInUp 0.8s ease-out;
 }
 
 .main .image-container .image {
@@ -26,115 +54,147 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.main .image-container .image::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 188, 212, 0.3) 0%, transparent 70%);
+    animation: pulse-ring 2s ease-out infinite;
 }
 
 .main .image-container .image img {
     width: 350px;
-    align-items: center;
+    max-width: 100%;
+    height: auto;
+    border-radius: 50%;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    position: relative;
+    z-index: 1;
+}
+
+.main .image-container .image img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(0, 188, 212, 0.4);
 }
 
 .main .image-container h1 {
-    color: #00bcd4;
+    color: var(--primary-color);
     text-align: center;
-    margin-bottom: 10px;
-    font-size: 40px;
+    margin-bottom: 15px;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 2px;
+    animation: fadeIn 1s ease-out 0.3s both;
 }
 
 .main .image-container p {
-    color: #324042;
+    color: rgba(255, 255, 255, 0.9);
     text-align: center;
     margin-bottom: 40px;
+    font-size: clamp(14px, 2vw, 18px);
+    font-weight: 400;
+    animation: fadeIn 1s ease-out 0.5s both;
 }
 
 .main .input {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 50%;
+    width: min(90%, 600px);
     height: fit-content;
-    border-radius: 20px;
-    background: rgb(202 253 255 / 50%);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     cursor: pointer;
-    transition: all 0.3s ease;
-    padding: 10px;
+    transition: var(--transition);
+    padding: 20px 30px;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid rgba(0, 188, 212, 0.2);
+    animation: fadeInUp 1s ease-out 0.7s both;
 }
 
 .main .input:hover {
-    transform: scale(0.97);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 188, 212, 0.3);
+    border-color: var(--primary-color);
 }
 
 .main .input.listening {
-    background: rgba(220, 53, 69, 0.5);
-    animation: pulse 1.5s infinite;
+    background: rgba(220, 53, 69, 0.95);
+    border-color: var(--accent-color);
+    animation: pulse 1.5s infinite, fadeInUp 1s ease-out 0.7s both;
 }
 
 .main .input .mic-btn {
     background: transparent;
     outline: none;
     border: none;
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 20px;
+    font-size: 24px;
     cursor: pointer;
-    color: #aed0d0;
+    color: var(--primary-color);
+    transition: var(--transition);
+    border-radius: 50%;
+}
+
+.main .input .mic-btn:hover {
+    background: rgba(0, 188, 212, 0.1);
+    transform: scale(1.1);
 }
 
 .main .input.listening .mic-btn {
     color: #ffffff;
+    animation: micPulse 1s ease-in-out infinite;
 }
 
 .main .input .content {
-    color: #aed0d0;
-    font-size: 15px;
+    color: var(--text-light);
+    font-size: clamp(14px, 2vw, 18px);
     margin-right: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    text-align: center;
 }
 
 .main .input.listening .content {
     color: #ffffff;
+    font-weight: 600;
 }
 
-@media screen and (max-width: 768px){
-    .main .image-container .image img{
-        width: 255px;
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
     }
-
-    .main .input{
-        width: 80%;
-    }
-}
-
-@media screen and (max-width: 273px){
-    .main .image-container .image img{
-        width: 155px;
+    to {
+        opacity: 1;
     }
 }
 
-.mic-btn {
-    font-size: 2rem;
-    padding: 1rem;
-    border: none;
-    border-radius: 50%;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 150px;
-}
-
-.mic-btn:hover {
-    background: #0056b3;
-    transform: scale(1.1);
-}
-
-.mic-btn.listening {
-    background: #dc3545;
-    animation: pulse 1.5s infinite;
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes pulse {
@@ -144,7 +204,7 @@
     }
     70% {
         transform: scale(1.02);
-        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+        box-shadow: 0 0 0 15px rgba(220, 53, 69, 0);
     }
     100% {
         transform: scale(1);
@@ -152,17 +212,137 @@
     }
 }
 
-.mic-btn i {
-    font-size: 20px;
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
 }
 
+@keyframes micPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+/* Estilos adicionais */
 .mic-btn .timer {
-    font-family: monospace;
-    font-size: 18px;
-    color: white;
-    margin-left: 10px;
+    font-family: "Roboto Mono", monospace;
+    font-size: 16px;
+    color: var(--primary-color);
+    margin-left: 15px;
+    font-weight: 600;
 }
 
-.mic-btn.listening .timer {
+.main .input.listening .mic-btn .timer {
     color: #ffffff;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* Responsividade */
+@media screen and (max-width: 768px) {
+    .main .image-container .image img {
+        width: min(255px, 80vw);
+    }
+
+    .main .input {
+        width: 95%;
+        padding: 15px 20px;
+    }
+
+    .main .input .content {
+        font-size: 14px;
+        margin-right: 10px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .main {
+        padding: 10px;
+    }
+
+    .main .image-container .image img {
+        width: min(200px, 70vw);
+    }
+
+    .main .input {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+    }
+
+    .main .input .content {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+}
+
+@media screen and (max-width: 273px) {
+    .main .image-container .image img {
+        width: 155px;
+    }
+}
+
+/* Modo escuro */
+body.dark-mode {
+    background-color: var(--background-dark);
+    color: var(--text-dark);
+}
+
+body.dark-mode .main {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+}
+
+body.dark-mode .main .input {
+    background: rgba(26, 26, 26, 0.95);
+    border-color: rgba(0, 188, 212, 0.3);
+}
+
+body.dark-mode .main .input .content {
+    color: var(--text-dark);
+}
+
+body.dark-mode .main .image-container p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Efeitos de loading */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0, 188, 212, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
