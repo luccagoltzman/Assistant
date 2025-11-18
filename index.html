@@ -34,7 +34,19 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
+            
+            <!-- Botão para abrir histórico -->
+            <button id="history-btn" class="history-btn" aria-label="Ver histórico de conversas">
+                <i class="fas fa-history"></i>
+                <span>Histórico</span>
+            </button>
         </div>
+        
+        <!-- Botão para parar fala da IA (aparece quando está falando) -->
+        <button id="stop-speech-btn" class="stop-speech-btn" aria-label="Parar fala da IA" style="display: none;">
+            <i class="fas fa-stop"></i>
+            <span>Parar Fala</span>
+        </button>
         <div class="talk input" role="button" aria-label="Clique para falar com o assistente">
             <button id="talk-btn" class="mic-btn" aria-label="Microfone">
                 <i class="fas fa-microphone-alt" aria-hidden="true"></i>
@@ -75,6 +87,31 @@
                 <!-- Conteúdo será inserido aqui -->
             </div>
         </div>
+        
+        <!-- Área de histórico de conversas -->
+        <div class="history-sidebar" id="history-sidebar">
+            <div class="history-header">
+                <h3><i class="fas fa-history"></i> Histórico de Conversas</h3>
+                <div class="history-actions">
+                    <button id="clear-history-btn" class="clear-history-btn" aria-label="Limpar histórico" title="Limpar histórico">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button id="close-history-btn" class="close-history-btn" aria-label="Fechar histórico">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="history-content" id="history-content">
+                <div class="history-empty" id="history-empty">
+                    <i class="fas fa-comments"></i>
+                    <p>Nenhuma conversa ainda</p>
+                    <span>Suas interações com o CANGALHA aparecerão aqui</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overlay para fechar histórico ao clicar fora -->
+        <div class="history-overlay" id="history-overlay"></div>
     </section>
     <script type="module" src="app.js"></script>
 </body>

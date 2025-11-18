@@ -50,6 +50,7 @@ class CangalhaApp {
         this.config = { OPENAI_API_KEY: apiKey };
         this.speakEnabled = true; // Controle de fala
         this.lastInteractionWasVoice = false; // Rastreia se última interação foi por voz
+        this.isSpeaking = false; // Rastreia se a IA está falando
         this.init();
     }
 
@@ -125,6 +126,12 @@ class CangalhaApp {
         
         // Configura toggle de voz
         this.setupVoiceToggle();
+        
+        // Configura histórico
+        this.setupHistory();
+        
+        // Configura botão de parar fala
+        this.setupStopSpeech();
     }
 
     /**
@@ -276,6 +283,287 @@ class CangalhaApp {
                 });
             }
         }
+    }
+
+    /**
+     * Configura o histórico de conversas
+     */
+    setupHistory() {
+        const historyBtn = document.querySelector('#history-btn');
+        const historySidebar = document.querySelector('#history-sidebar');
+        const closeHistoryBtn = document.querySelector('#close-history-btn');
+        const clearHistoryBtn = document.querySelector('#clear-history-btn');
+        const historyOverlay = document.querySelector('#history-overlay');
+        const historyContent = document.querySelector('#history-content');
+
+        if (!historyBtn || !historySidebar) return;
+
+        // Função para abrir/fechar histórico
+        const toggleHistory = () => {
+            const isOpen = historySidebar.classList.contains('open');
+            if (isOpen) {
+                closeHistory();
+            } else {
+                openHistory();
+            }
+        };
+
+        const openHistory = () => {
+            historySidebar.classList.add('open');
+            historyOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            this.renderHistory();
+        };
+
+        const closeHistory = () => {
+            historySidebar.classList.remove('open');
+            historyOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        // Event listeners
+        historyBtn.addEventListener('click', toggleHistory);
+        closeHistoryBtn?.addEventListener('click', closeHistory);
+        historyOverlay?.addEventListener('click', closeHistory);
+
+        // Limpar histórico
+        clearHistoryBtn?.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja limpar todo o histórico de conversas?')) {
+                HistoryManager.clear();
+                this.renderHistory();
+            }
+        });
+
+        // Fechar com ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && historySidebar.classList.contains('open')) {
+                closeHistory();
+            }
+        });
+    }
+
+    /**
+     * Renderiza o histórico de conversas
+     */
+    renderHistory() {
+        const historyContent = document.querySelector('#history-content');
+        
+        if (!historyContent) return;
+
+        const history = HistoryManager.getAll();
+
+        // Limpa o conteúdo
+        historyContent.innerHTML = '';
+
+        if (history.length === 0) {
+            // Mostra mensagem vazia
+            historyContent.innerHTML = `
+                <div class="history-empty">
+                    <i class="fas fa-comments"></i>
+                    <p>Nenhuma conversa ainda</p>
+                    <span>Suas interações com o CANGALHA aparecerão aqui</span>
+                </div>
+            `;
+            return;
+        }
+
+        // Renderiza cada item do histórico
+        history.forEach(entry => {
+            const item = this.createHistoryItem(entry);
+            historyContent.appendChild(item);
+        });
+    }
+
+    /**
+     * Cria um item de histórico
+     * @param {Object} entry - Entrada do histórico
+     * @returns {HTMLElement}
+     */
+    createHistoryItem(entry) {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+
+        // Formata data e hora
+        const date = new Date(entry.timestamp);
+        const formattedDate = date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Verifica se o texto da resposta é longo
+        const isLongText = entry.assistant.length > 200;
+        const truncatedText = isLongText ? entry.assistant.substring(0, 200) + '...' : entry.assistant;
+
+        item.innerHTML = `
+            <div class="history-item-header">
+                <span class="history-item-time">
+                    <i class="fas fa-clock"></i> ${formattedDate}
+                </span>
+                <button class="history-item-delete" data-id="${entry.id}" aria-label="Excluir conversa">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div class="history-item-user">
+                <div class="history-item-user-label">
+                    <i class="fas fa-user"></i> Você
+                </div>
+                <div class="history-item-user-text">${this.escapeHtml(entry.user)}</div>
+            </div>
+            <div class="history-item-assistant">
+                <div class="history-item-assistant-label">
+                    <i class="fas fa-robot"></i> CANGALHA
+                </div>
+                <div class="history-item-assistant-text ${isLongText ? '' : 'expanded'}">${this.escapeHtml(truncatedText)}</div>
+                ${isLongText ? `
+                    <div class="history-item-expand" data-id="${entry.id}">
+                        Ver mais <i class="fas fa-chevron-down"></i>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        // Event listener para expandir/recolher texto
+        const expandBtn = item.querySelector('.history-item-expand');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const textElement = item.querySelector('.history-item-assistant-text');
+                const isExpanded = textElement.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    textElement.classList.remove('expanded');
+                    textElement.textContent = truncatedText;
+                    expandBtn.innerHTML = 'Ver mais <i class="fas fa-chevron-down"></i>';
+                } else {
+                    textElement.classList.add('expanded');
+                    textElement.textContent = this.escapeHtml(entry.assistant);
+                    expandBtn.innerHTML = 'Ver menos <i class="fas fa-chevron-up"></i>';
+                }
+            });
+        }
+
+        // Event listener para deletar item
+        const deleteBtn = item.querySelector('.history-item-delete');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Deseja excluir esta conversa do histórico?')) {
+                    HistoryManager.remove(entry.id);
+                    this.renderHistory();
+                }
+            });
+        }
+
+        // Event listener para clicar no item (pode ser usado para recarregar a conversa)
+        item.addEventListener('click', (e) => {
+            // Não faz nada se clicou em botões
+            if (e.target.closest('button')) return;
+            
+            // Aqui você pode adicionar funcionalidade para recarregar a conversa
+            // Por exemplo, mostrar a resposta completa na área de resposta
+            this.uiService.showRichResponse(entry.assistant);
+        });
+
+        return item;
+    }
+
+    /**
+     * Escapa HTML para prevenir XSS
+     * @param {string} text
+     * @returns {string}
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Configura o botão de parar fala
+     */
+    setupStopSpeech() {
+        const stopSpeechBtn = document.querySelector('#stop-speech-btn');
+        
+        if (!stopSpeechBtn) return;
+
+        // Event listener para parar a fala
+        stopSpeechBtn.addEventListener('click', () => {
+            this.stopSpeech();
+        });
+
+        // Atalho de teclado: ESC ou Space para parar fala quando estiver falando
+        document.addEventListener('keydown', (e) => {
+            // Só funciona se a IA estiver falando
+            if (!this.isSpeaking) return;
+            
+            // ESC ou Space para parar
+            if (e.key === 'Escape' || (e.key === ' ' && !e.target.matches('input, textarea'))) {
+                e.preventDefault();
+                this.stopSpeech();
+            }
+        });
+
+        // Monitora o estado de fala através do SpeechService
+        this.monitorSpeechState();
+    }
+
+    /**
+     * Para a fala da IA
+     */
+    stopSpeech() {
+        this.speechService.stop();
+        this.isSpeaking = false;
+        this.hideStopSpeechButton();
+    }
+
+    /**
+     * Mostra o botão de parar fala
+     */
+    showStopSpeechButton() {
+        const stopSpeechBtn = document.querySelector('#stop-speech-btn');
+        if (stopSpeechBtn) {
+            stopSpeechBtn.style.display = 'flex';
+            // Animação de entrada
+            setTimeout(() => {
+                stopSpeechBtn.classList.add('visible');
+            }, 10);
+        }
+    }
+
+    /**
+     * Esconde o botão de parar fala
+     */
+    hideStopSpeechButton() {
+        const stopSpeechBtn = document.querySelector('#stop-speech-btn');
+        if (stopSpeechBtn) {
+            stopSpeechBtn.classList.remove('visible');
+            setTimeout(() => {
+                stopSpeechBtn.style.display = 'none';
+            }, 300);
+        }
+    }
+
+    /**
+     * Monitora o estado de fala
+     */
+    monitorSpeechState() {
+        // Verifica periodicamente se está falando
+        setInterval(() => {
+            const isCurrentlySpeaking = window.speechSynthesis?.speaking || false;
+            
+            if (isCurrentlySpeaking && !this.isSpeaking) {
+                // Começou a falar
+                this.isSpeaking = true;
+                this.showStopSpeechButton();
+            } else if (!isCurrentlySpeaking && this.isSpeaking) {
+                // Parou de falar
+                this.isSpeaking = false;
+                this.hideStopSpeechButton();
+            }
+        }, 100); // Verifica a cada 100ms
     }
 
     /**
@@ -503,6 +791,11 @@ INSTRUÇÕES IMPORTANTES:
             
             // Também atualiza o conteúdo simples (para compatibilidade)
             this.uiService.updateContent(reply.substring(0, 100) + (reply.length > 100 ? '...' : ''));
+            
+            // Atualiza o histórico se estiver aberto (o histórico já é salvo no openai.js)
+            if (document.querySelector('#history-sidebar')?.classList.contains('open')) {
+                this.renderHistory();
+            }
             
             // Fala a resposta APENAS se:
             // 1. A fala estiver habilitada (toggle ativo)
