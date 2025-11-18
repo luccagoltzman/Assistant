@@ -1,4 +1,4 @@
-# 🎙️ CANGALHA - Assistente Virtual Inteligente
+# 🎙️ Assistent MultiNegócios - Assistente Virtual Inteligente
 
 Um assistente virtual avançado em português que utiliza reconhecimento de voz, síntese de voz e a API da OpenAI para interagir com o usuário de forma natural e inteligente.
 

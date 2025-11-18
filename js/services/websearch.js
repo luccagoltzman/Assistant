@@ -10,9 +10,11 @@ export class WebSearchService {
     async searchDuckDuckGo(query) {
         // Tenta múltiplos proxies em sequência
         const proxies = [
-            'https://api.allorigins.win',
             'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest='
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://api.allorigins.win',
+            'https://cors-anywhere.herokuapp.com/',
+            'https://thingproxy.freeboard.io/fetch/'
         ];
         
         const targetUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
@@ -24,60 +26,80 @@ export class WebSearchService {
                     proxyUrl = `${proxyBase}/get?url=${encodeURIComponent(targetUrl)}`;
                 } else if (proxyBase.includes('codetabs')) {
                     proxyUrl = `${proxyBase}${encodeURIComponent(targetUrl)}`;
+                } else if (proxyBase.includes('thingproxy') || proxyBase.includes('cors-anywhere')) {
+                    proxyUrl = `${proxyBase}${targetUrl}`;
                 } else {
                     proxyUrl = `${proxyBase}${targetUrl}`;
                 }
                 
-                const response = await fetch(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                // Adiciona timeout para evitar requisições travadas
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
                 
-                if (!response.ok) {
-                    continue; // Tenta próximo proxy
-                }
+                try {
+                    const response = await fetch(proxyUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        continue; // Tenta próximo proxy
+                    }
 
-                let data;
-                if (proxyBase.includes('allorigins')) {
-                    const proxyData = await response.json();
-                    if (!proxyData.contents) {
+                    let data;
+                    if (proxyBase.includes('allorigins')) {
+                        const proxyData = await response.json();
+                        if (!proxyData.contents) {
+                            continue;
+                        }
+                        data = JSON.parse(proxyData.contents);
+                    } else {
+                        data = await response.json();
+                    }
+                    
+                    // Retorna AbstractText se disponível
+                    if (data.AbstractText && data.AbstractText.trim().length > 10) {
+                        return data.AbstractText.trim();
+                    }
+                    
+                    // Retorna Answer se disponível
+                    if (data.Answer && data.Answer.trim().length > 10) {
+                        return data.Answer.trim();
+                    }
+                    
+                    // Retorna RelatedTopics se disponível
+                    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                        const firstTopic = data.RelatedTopics[0];
+                        if (firstTopic.Text && firstTopic.Text.trim().length > 10) {
+                            return firstTopic.Text.trim();
+                        }
+                    }
+                    
+                    // Retorna Definition se disponível
+                    if (data.Definition && data.Definition.trim().length > 10) {
+                        return data.Definition.trim();
+                    }
+                    
+                    // Se chegou aqui, encontrou dados mas não úteis, tenta próximo proxy
+                    continue;
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    // Erros de CORS/fetch são esperados e silenciosamente ignorados
+                    if (fetchError.name === 'AbortError') {
+                        // Timeout - tenta próximo proxy
                         continue;
                     }
-                    data = JSON.parse(proxyData.contents);
-                } else {
-                    data = await response.json();
+                    // Outros erros também são ignorados silenciosamente
+                    continue;
                 }
-                
-                // Retorna AbstractText se disponível
-                if (data.AbstractText && data.AbstractText.trim().length > 10) {
-                    return data.AbstractText.trim();
-                }
-                
-                // Retorna Answer se disponível
-                if (data.Answer && data.Answer.trim().length > 10) {
-                    return data.Answer.trim();
-                }
-                
-                // Retorna RelatedTopics se disponível
-                if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                    const firstTopic = data.RelatedTopics[0];
-                    if (firstTopic.Text && firstTopic.Text.trim().length > 10) {
-                        return firstTopic.Text.trim();
-                    }
-                }
-                
-                // Retorna Definition se disponível
-                if (data.Definition && data.Definition.trim().length > 10) {
-                    return data.Definition.trim();
-                }
-                
-                // Se chegou aqui, encontrou dados mas não úteis, tenta próximo proxy
-                continue;
             } catch (error) {
-                console.warn(`Erro com proxy ${proxyBase}:`, error.message);
-                continue; // Tenta próximo proxy
+                // Erros gerais são ignorados silenciosamente - tenta próximo proxy
+                continue;
             }
         }
         
@@ -130,9 +152,10 @@ export class WebSearchService {
     async searchNewsAlternative(query) {
         // Tenta múltiplos proxies e fontes
         const proxies = [
-            'https://api.allorigins.win',
             'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest='
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://api.allorigins.win',
+            'https://thingproxy.freeboard.io/fetch/'
         ];
         
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
@@ -144,71 +167,86 @@ export class WebSearchService {
                     proxyUrl = `${proxyBase}/get?url=${encodeURIComponent(rssUrl)}`;
                 } else if (proxyBase.includes('codetabs')) {
                     proxyUrl = `${proxyBase}${encodeURIComponent(rssUrl)}`;
+                } else if (proxyBase.includes('thingproxy')) {
+                    proxyUrl = `${proxyBase}${rssUrl}`;
                 } else {
                     proxyUrl = `${proxyBase}${rssUrl}`;
                 }
                 
-                const response = await fetch(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/xml, text/xml, */*'
-                    }
-                });
+                // Adiciona timeout para evitar requisições travadas
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
                 
-                if (!response.ok) {
-                    continue; // Tenta próximo proxy
-                }
+                try {
+                    const response = await fetch(proxyUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/xml, text/xml, */*'
+                        },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        continue; // Tenta próximo proxy
+                    }
 
-                let text;
-                if (proxyBase.includes('allorigins')) {
-                    const proxyData = await response.json();
-                    if (!proxyData.contents) {
-                        continue;
+                    let text;
+                    if (proxyBase.includes('allorigins')) {
+                        const proxyData = await response.json();
+                        if (!proxyData.contents) {
+                            continue;
+                        }
+                        text = proxyData.contents;
+                    } else {
+                        text = await response.text();
                     }
-                    text = proxyData.contents;
-                } else {
-                    text = await response.text();
-                }
-                
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, 'text/xml');
-                
-                // Verifica se há erros no parsing
-                const parseError = xml.querySelector('parsererror');
-                if (parseError) {
+                    
+                    const parser = new DOMParser();
+                    const xml = parser.parseFromString(text, 'text/xml');
+                    
+                    // Verifica se há erros no parsing
+                    const parseError = xml.querySelector('parsererror');
+                    if (parseError) {
+                        continue; // Tenta próximo proxy
+                    }
+                    
+                    const items = xml.querySelectorAll('item');
+                    const news = [];
+                    
+                    items.forEach((item, index) => {
+                        if (index < 5) { // Limita a 5 notícias
+                            const title = item.querySelector('title')?.textContent || '';
+                            const description = item.querySelector('description')?.textContent || '';
+                            const link = item.querySelector('link')?.textContent || '';
+                            const pubDate = item.querySelector('pubDate')?.textContent || '';
+                            
+                            if (title && title.trim().length > 0) {
+                                news.push({
+                                    title: title.replace(/<[^>]*>/g, '').trim(), // Remove HTML
+                                    description: description ? description.replace(/<[^>]*>/g, '').trim() : '',
+                                    url: link || '',
+                                    publishedAt: pubDate || ''
+                                });
+                            }
+                        }
+                    });
+                    
+                    if (news.length > 0) {
+                        return news;
+                    }
+                    
+                    // Se chegou aqui mas não encontrou notícias, tenta próximo proxy
+                    continue;
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    // Erros de CORS/fetch são esperados e silenciosamente ignorados
                     continue; // Tenta próximo proxy
                 }
-                
-                const items = xml.querySelectorAll('item');
-                const news = [];
-                
-                items.forEach((item, index) => {
-                    if (index < 5) { // Limita a 5 notícias
-                        const title = item.querySelector('title')?.textContent || '';
-                        const description = item.querySelector('description')?.textContent || '';
-                        const link = item.querySelector('link')?.textContent || '';
-                        const pubDate = item.querySelector('pubDate')?.textContent || '';
-                        
-                        if (title && title.trim().length > 0) {
-                            news.push({
-                                title: title.replace(/<[^>]*>/g, '').trim(), // Remove HTML
-                                description: description ? description.replace(/<[^>]*>/g, '').trim() : '',
-                                url: link || '',
-                                publishedAt: pubDate || ''
-                            });
-                        }
-                    }
-                });
-                
-                if (news.length > 0) {
-                    return news;
-                }
-                
-                // Se chegou aqui mas não encontrou notícias, tenta próximo proxy
-                continue;
             } catch (error) {
-                console.warn(`Erro com proxy ${proxyBase} para notícias:`, error.message);
-                continue; // Tenta próximo proxy
+                // Erros gerais são ignorados silenciosamente - tenta próximo proxy
+                continue;
             }
         }
         
@@ -262,6 +300,71 @@ export class WebSearchService {
             return null;
         } catch (error) {
             console.error('Erro na busca esportiva:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Busca informações específicas sobre clima/tempo
+     * @param {string} query - Termo de busca (ex: "chuva hoje são luís")
+     * @returns {Promise<string>} - Informações encontradas
+     */
+    async searchWeather(query) {
+        try {
+            // Tenta múltiplas variações da query para melhor resultado
+            const weatherQueries = [
+                query,
+                `previsão do tempo ${query}`,
+                `clima hoje ${query}`,
+                `tempo ${query}`,
+                `probabilidade chuva ${query}`
+            ];
+            
+            // Tenta cada variação até encontrar algo útil
+            for (const searchQuery of weatherQueries) {
+                const [ddgResult, newsResult] = await Promise.allSettled([
+                    this.searchDuckDuckGo(searchQuery),
+                    this.searchNewsAlternative(searchQuery)
+                ]);
+                
+                const ddgResult_value = ddgResult.status === 'fulfilled' ? ddgResult.value : null;
+                const news = newsResult.status === 'fulfilled' ? newsResult.value : [];
+                
+                // Se encontrou no DuckDuckGo com informações substanciais, usa isso
+                if (ddgResult_value && ddgResult_value.trim().length > 50) {
+                    return ddgResult_value;
+                }
+                
+                // Se encontrou notícias relevantes sobre clima, formata e retorna
+                if (news && Array.isArray(news) && news.length > 0) {
+                    // Filtra notícias que realmente falam sobre clima/tempo
+                    const weatherNews = news.filter(n => {
+                        const titleLower = n.title.toLowerCase();
+                        return titleLower.includes('chuva') || 
+                               titleLower.includes('clima') || 
+                               titleLower.includes('tempo') || 
+                               titleLower.includes('previsão') ||
+                               titleLower.includes('temperatura');
+                    });
+                    
+                    if (weatherNews.length > 0) {
+                        const summary = weatherNews.map((n, i) => 
+                            `${i + 1}. **${n.title}**\n   ${n.description ? n.description.substring(0, 300) : 'Sem descrição'}...\n   Fonte: ${n.url || 'N/A'}\n   Data: ${n.publishedAt || 'Recente'}`
+                        ).join('\n\n');
+                        
+                        return `INFORMAÇÕES SOBRE CLIMA/TEMPO ENCONTRADAS:\n\n${summary}`;
+                    }
+                }
+                
+                // Se encontrou algo no DuckDuckGo (mesmo que curto), retorna
+                if (ddgResult_value && ddgResult_value.trim().length > 20) {
+                    return ddgResult_value;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Erro na busca de clima:', error);
             return null;
         }
     }

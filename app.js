@@ -36,9 +36,9 @@ async function loadConfig() {
 }
 
 /**
- * Aplicação principal do CANGALHA
+ * Aplicação principal do Assistent MultiNegócios
  */
-class CangalhaApp {
+class AssistentMultiNegociosApp {
     constructor(apiKey) {
         this.speechService = new SpeechService();
         this.recognitionService = new RecognitionService();
@@ -142,7 +142,7 @@ class CangalhaApp {
         if (!voiceToggle) return;
 
         // Carrega preferência salva
-        const savedPreference = localStorage.getItem('cangalha_speak_enabled');
+        const savedPreference = localStorage.getItem('assistent_multinegocios_speak_enabled');
         if (savedPreference !== null) {
             this.speakEnabled = savedPreference === 'true';
             voiceToggle.checked = this.speakEnabled;
@@ -154,7 +154,7 @@ class CangalhaApp {
         // Listener para mudanças
         voiceToggle.addEventListener('change', (e) => {
             this.speakEnabled = e.target.checked;
-            localStorage.setItem('cangalha_speak_enabled', this.speakEnabled.toString());
+            localStorage.setItem('assistent_multinegocios_speak_enabled', this.speakEnabled.toString());
             this.updateVoiceToggleIcon();
         });
     }
@@ -361,7 +361,7 @@ class CangalhaApp {
                 <div class="history-empty">
                     <i class="fas fa-comments"></i>
                     <p>Nenhuma conversa ainda</p>
-                    <span>Suas interações com o CANGALHA aparecerão aqui</span>
+                    <span>Suas interações com o Assistent MultiNegócios aparecerão aqui</span>
                 </div>
             `;
             return;
@@ -414,7 +414,7 @@ class CangalhaApp {
             </div>
             <div class="history-item-assistant">
                 <div class="history-item-assistant-label">
-                    <i class="fas fa-robot"></i> CANGALHA
+                    <i class="fas fa-robot"></i> Assistent MultiNegócios
                 </div>
                 <div class="history-item-assistant-text ${isLongText ? '' : 'expanded'}">${this.escapeHtml(truncatedText)}</div>
                 ${isLongText ? `
@@ -547,6 +547,122 @@ class CangalhaApp {
     }
 
     /**
+     * Detecta se a resposta da IA foi assertiva ou vaga
+     * @param {string} reply - Resposta da IA
+     * @returns {boolean} - true se foi assertiva, false se foi vaga
+     */
+    isResponseAssertive(reply) {
+        if (!reply || reply.trim().length < 20) {
+            return false;
+        }
+
+        const lowerReply = reply.toLowerCase();
+        
+        // Frases que indicam resposta vaga/não assertiva
+        const vaguePhrases = [
+            'não há informação direta',
+            'não há uma informação direta',
+            'não encontrei informações',
+            'não tenho acesso',
+            'não posso fornecer',
+            'não consigo encontrar',
+            'informações não estão disponíveis',
+            'não foi possível encontrar',
+            'recomenda-se verificar',
+            'recomendo pesquisar',
+            'recomendo que você',
+            'sugiro verificar',
+            'sugiro que você',
+            'é possível observar que',
+            'com base nas informações recentes encontradas, não há',
+            'não há uma informação específica',
+            'informações podem estar',
+            'tente verificar',
+            'consulte',
+            'verifique a previsão',
+            'pesquisar em sites',
+            'pesquisar em',
+            'entrar em contato',
+            'obter informações'
+        ];
+        
+        // Verifica se contém frases vagas
+        const hasVaguePhrase = vaguePhrases.some(phrase => lowerReply.includes(phrase));
+        
+        // Verifica se tem dados específicos (números, porcentagens, etc)
+        const hasSpecificData = /\d+%|\d+°c|\d+°c|\d+\s*(km\/h|kmh|graus|porcento)/i.test(reply);
+        
+        // Se tem frase vaga E não tem dados específicos, não é assertiva
+        if (hasVaguePhrase && !hasSpecificData) {
+            return false;
+        }
+        
+        // Se tem dados específicos, provavelmente é assertiva
+        if (hasSpecificData) {
+            return true;
+        }
+        
+        // Se não tem frase vaga, provavelmente é assertiva
+        return !hasVaguePhrase;
+    }
+
+    /**
+     * Abre o Google com a pesquisa
+     * @param {string} query - Termo de busca
+     */
+    openGoogleSearch(query) {
+        try {
+            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            console.log('🔍 Tentando abrir Google com pesquisa:', query);
+            
+            // Tenta abrir em nova aba
+            const newWindow = window.open(searchUrl, '_blank', 'noopener,noreferrer');
+            
+            // Verifica se o pop-up foi bloqueado
+            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                console.warn('⚠️ Pop-up bloqueado pelo navegador. Tentando método alternativo...');
+                // Método alternativo: criar link e clicar programaticamente
+                const link = document.createElement('a');
+                link.href = searchUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                console.log('✅ Link alternativo criado e clicado');
+            } else {
+                console.log('✅ Google aberto com sucesso');
+            }
+            
+            // Notifica o usuário
+            if (this.speakEnabled && this.lastInteractionWasVoice) {
+                this.speechService.speak('Abri o Google com a pesquisa para você encontrar informações mais precisas.');
+            }
+            
+            // Adiciona notificação visual na resposta
+            const responseContent = document.querySelector('#response-content');
+            if (responseContent) {
+                const notification = document.createElement('div');
+                notification.style.cssText = 'margin-top: 15px; padding: 12px; background: rgba(0, 188, 212, 0.1); border-left: 4px solid var(--primary-color); border-radius: 4px;';
+                notification.innerHTML = '<strong>🔍 Google aberto:</strong> Abri uma nova aba com sua pesquisa para informações mais precisas.';
+                responseContent.appendChild(notification);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao abrir Google:', error);
+            // Fallback: mostra link clicável
+            const responseContent = document.querySelector('#response-content');
+            if (responseContent) {
+                const notification = document.createElement('div');
+                notification.style.cssText = 'margin-top: 15px; padding: 12px; background: rgba(220, 53, 69, 0.1); border-left: 4px solid var(--accent-color); border-radius: 4px;';
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                notification.innerHTML = `<strong>🔍 Pop-up bloqueado:</strong> <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">Clique aqui para pesquisar no Google</a>`;
+                responseContent.appendChild(notification);
+            }
+        }
+    }
+
+    /**
      * Monitora o estado de fala
      */
     monitorSpeechState() {
@@ -575,17 +691,17 @@ class CangalhaApp {
 
         let greeting;
         if (hour >= 0 && hour < 12) {
-            greeting = "Bom dia moço...";
+            greeting = "Bom dia...";
         } else if (hour >= 12 && hour < 17) {
-            greeting = "Boa tarde moço...";
+            greeting = "Boa tarde...";
         } else {
-            greeting = "Boa noite moço...";
+            greeting = "Boa noite...";
         }
 
         // Aguarda um pouco antes de falar (só se fala estiver habilitada)
         if (this.speakEnabled) {
             setTimeout(() => {
-                this.speechService.speak("INICIANDO CANGALHA...");
+                this.speechService.speak("INICIANDO ASSISTENT MULTINEGÓCIOS...");
                 setTimeout(() => {
                     this.speechService.speak(greeting);
                 }, 1000);
@@ -677,7 +793,11 @@ class CangalhaApp {
             'notícia', 'noticias', 'acontecendo', 'agora mesmo',
             'tempo real', 'live', 'ao vivo', 'resultado', 'placar', 'classificação',
             '2024', '2025', 'este ano', 'este mês', 'esta semana', 'neste momento',
-            'esporte', 'esportes', 'campeonato', 'liga', 'torneio'
+            'esporte', 'esportes', 'campeonato', 'liga', 'torneio',
+            // Clima e tempo
+            'chuva', 'chover', 'chovendo', 'previsão', 'tempo', 'clima', 'temperatura',
+            'probabilidade', 'vai chover', 'vai chover hoje', 'previsão do tempo',
+            'clima hoje', 'tempo hoje', 'chuva hoje', 'previsão hoje'
         ];
         
         return realTimeKeywords.some(keyword => lowerMessage.includes(keyword));
@@ -712,18 +832,27 @@ class CangalhaApp {
                 this.uiService.updateContent('Buscando informações atualizadas na web...');
                 
                 try {
+                    const lowerMessage = message.toLowerCase();
                     // Busca informações na web - tenta múltiplas fontes
-                    if (message.toLowerCase().includes('f1') || message.toLowerCase().includes('formula 1') || message.toLowerCase().includes('formula um') || message.toLowerCase().includes('interlagos') || message.toLowerCase().includes('gp')) {
+                    if (lowerMessage.includes('f1') || lowerMessage.includes('formula 1') || lowerMessage.includes('formula um') || lowerMessage.includes('interlagos') || lowerMessage.includes('gp')) {
                         console.log('Buscando informações sobre F1...');
                         webInfo = await this.webSearchService.searchSports('F1', message);
                         // Se não encontrou, tenta busca geral também
                         if (!webInfo) {
                             webInfo = await this.webSearchService.searchWeb(message);
                         }
-                    } else if (message.toLowerCase().includes('futebol') || message.toLowerCase().includes('brasileirão') || message.toLowerCase().includes('copa') || message.toLowerCase().includes('campeonato')) {
+                    } else if (lowerMessage.includes('futebol') || lowerMessage.includes('brasileirão') || lowerMessage.includes('copa') || lowerMessage.includes('campeonato')) {
                         console.log('Buscando informações sobre futebol...');
                         webInfo = await this.webSearchService.searchSports('futebol', message);
                         if (!webInfo) {
+                            webInfo = await this.webSearchService.searchWeb(message);
+                        }
+                    } else if (lowerMessage.includes('chuva') || lowerMessage.includes('chover') || lowerMessage.includes('clima') || lowerMessage.includes('tempo') || lowerMessage.includes('previsão')) {
+                        console.log('Buscando informações sobre clima/tempo...');
+                        // Usa função específica para busca de clima
+                        webInfo = await this.webSearchService.searchWeather(message);
+                        // Se não encontrou, tenta busca geral também
+                        if (!webInfo || webInfo.trim().length < 50) {
                             webInfo = await this.webSearchService.searchWeb(message);
                         }
                     } else {
@@ -753,19 +882,31 @@ class CangalhaApp {
             // Adiciona informações da web ao contexto se disponível
             let enhancedMessage = message;
             if (webInfo && webInfo !== 'BUSCA_NA_WEB_FALHOU') {
-                // Instruções mais claras e diretas para a IA usar as informações
+                // Instruções MUITO assertivas e diretas para a IA usar as informações
                 enhancedMessage = `PERGUNTA DO USUÁRIO: ${message}
 
 INFORMAÇÕES ATUALIZADAS ENCONTRADAS NA WEB:
 ${webInfo}
 
-INSTRUÇÕES IMPORTANTES:
-1. USE as informações acima para responder a pergunta do usuário
-2. Se as informações estiverem disponíveis, RESPONDA com base nelas
-3. Cite as fontes quando possível
-4. Se as informações não forem completas, mencione isso mas use o que tem disponível
-5. NÃO diga que não tem acesso - você TEM acesso através das informações acima
-6. Seja específico e use os dados encontrados na busca`;
+INSTRUÇÕES CRÍTICAS - LEIA COM ATENÇÃO:
+1. VOCÊ TEM ACESSO DIRETO ÀS INFORMAÇÕES ACIMA - USE-AS AGORA
+2. SEJA DIRETO E ASSERTIVO - NÃO diga "não há informação direta" ou "não tenho acesso"
+3. EXTRAIA os dados específicos das informações acima e apresente-os de forma clara
+4. Se encontrar porcentagens, temperaturas, horários, ou dados numéricos, APRESENTE-OS DIRETAMENTE
+5. NÃO seja vago - seja ESPECÍFICO com os dados encontrados
+6. Se a pergunta é sobre probabilidade de chuva, responda com a porcentagem encontrada
+7. Se a pergunta é sobre temperatura, responda com a temperatura encontrada
+8. Cite as fontes apenas no final, mas PRIMEIRO dê a resposta direta
+9. Sua resposta DEVE começar com a informação principal que o usuário pediu
+10. NÃO use frases como "com base nas informações" ou "não há informação direta" - SEJA DIRETO
+
+EXEMPLO DE RESPOSTA CORRETA:
+"Hoje em São Luís há 25% de probabilidade de chuva. A temperatura está em 29°C, com umidade de 72% e vento de 26 km/h. O clima está predominantemente nublado."
+
+EXEMPLO DE RESPOSTA INCORRETA (NÃO FAÇA ISSO):
+"Com base nas informações recentes encontradas, não há uma informação direta sobre a probabilidade de chuva hoje em São Luís..."
+
+RESPONDA AGORA DE FORMA DIRETA E ASSERTIVA:`;
             } else if (needsRealTimeInfo) {
                 // Se detectou que precisa de info em tempo real mas não encontrou
                 enhancedMessage = `PERGUNTA DO USUÁRIO: ${message}
@@ -786,8 +927,22 @@ INSTRUÇÕES IMPORTANTES:
             
             const reply = await this.openAIService.sendMessage(enhancedMessage, history);
             
+            // Verifica se a resposta foi assertiva
+            const isAssertive = this.isResponseAssertive(reply);
+            
             // Mostra resposta rica formatada
             this.uiService.showRichResponse(reply);
+            
+            // Se não foi assertiva, abre o Google (independente de ser tempo real ou não)
+            // Isso ajuda quando a IA não consegue responder adequadamente
+            if (!isAssertive) {
+                console.log('⚠️ Resposta não foi assertiva, abrindo Google com a pesquisa...');
+                console.log('📊 Detalhes:', { isAssertive, needsRealTimeInfo, message });
+                // Aguarda um pouco para não ser muito intrusivo
+                setTimeout(() => {
+                    this.openGoogleSearch(message);
+                }, 1500);
+            }
             
             // Também atualiza o conteúdo simples (para compatibilidade)
             this.uiService.updateContent(reply.substring(0, 100) + (reply.length > 100 ? '...' : ''));
@@ -881,5 +1036,5 @@ INSTRUÇÕES IMPORTANTES:
 // Inicializa a aplicação quando a página carregar
 window.addEventListener('load', async () => {
     const loadedConfig = await loadConfig();
-    new CangalhaApp(loadedConfig.OPENAI_API_KEY);
+    new AssistentMultiNegociosApp(loadedConfig.OPENAI_API_KEY);
 });

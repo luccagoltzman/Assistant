@@ -19,7 +19,7 @@ export class CommandManager {
      */
     async speakIfEnabled(text) {
         if (this.shouldSpeak) {
-            await this.speakIfEnabled(text);
+            await this.speechService.speak(text);
         }
     }
 
@@ -234,7 +234,21 @@ export class CommandManager {
      * @returns {boolean}
      */
     matches(message, commands) {
-        return commands.some(cmd => message.includes(cmd));
+        // Verifica se algum comando corresponde à mensagem
+        // Usa verificação exata ou de frase completa para evitar falsos positivos
+        return commands.some(cmd => {
+            // Se o comando é uma frase completa (tem mais de uma palavra), verifica se está contida
+            if (cmd.split(' ').length > 1) {
+                return message.includes(cmd);
+            }
+            // Se é uma palavra única, verifica se é exata ou está no início/fim de frase
+            // Isso evita que palavras genéricas como "dia", "tempo" acionem comandos
+            const words = message.split(/\s+/);
+            return words.includes(cmd) || 
+                   message.startsWith(cmd + ' ') || 
+                   message.endsWith(' ' + cmd) ||
+                   message === cmd;
+        });
     }
 
     async handleHelp() {
@@ -431,7 +445,7 @@ export class CommandManager {
         } else {
             const recent = history.slice(0, 5);
             const historyText = recent.map((entry, index) => 
-                `${index + 1}. Você: ${entry.user}\n   CANGALHA: ${entry.assistant.substring(0, 50)}...`
+                `${index + 1}. Você: ${entry.user}\n   Assistent MultiNegócios: ${entry.assistant.substring(0, 50)}...`
             ).join('\n\n');
             await this.speakIfEnabled(`Você tem ${history.length} conversas no histórico. Mostrando as 5 mais recentes.`);
             this.uiService.updateContent(`Histórico (${history.length} conversas):\n\n${historyText}`);
