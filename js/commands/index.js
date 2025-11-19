@@ -6,10 +6,12 @@ import { HistoryManager } from '../utils/history.js';
  * Gerenciador de comandos
  */
 export class CommandManager {
-    constructor(speechService, uiService, webSearchService = null) {
+    constructor(speechService, uiService, webSearchService = null, cameraService = null, openAIService = null) {
         this.speechService = speechService;
         this.uiService = uiService;
         this.webSearchService = webSearchService;
+        this.cameraService = cameraService;
+        this.openAIService = openAIService;
         this.shouldSpeak = true; // Controle de fala
     }
 
@@ -432,9 +434,22 @@ export class CommandManager {
     }
 
     async handleCamera() {
-        // Implementação da câmera será mantida no app.js principal por enquanto
-        // devido à complexidade do código de detecção de gestos
-        await this.speakIfEnabled('Funcionalidade de câmera em desenvolvimento');
+        if (!this.cameraService || !this.openAIService) {
+            await this.speakIfEnabled('Serviços de câmera ou IA não disponíveis');
+            this.uiService.updateContent('⚠️ Serviços de câmera ou IA não disponíveis. Verifique a configuração.');
+            return;
+        }
+
+        // Verifica se a câmera está disponível
+        const isAvailable = await this.cameraService.isAvailable();
+        if (!isAvailable) {
+            await this.speakIfEnabled('Câmera não encontrada no dispositivo');
+            this.uiService.updateContent('⚠️ Nenhuma câmera encontrada no dispositivo.');
+            return;
+        }
+
+        // Mostra interface de câmera
+        this.uiService.showCameraInterface(this.cameraService, this.openAIService, this.speechService, this.shouldSpeak);
     }
 
     async handleHistory() {

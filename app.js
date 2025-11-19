@@ -1,6 +1,7 @@
 import { SpeechService } from './js/services/speech.js';
 import { RecognitionService } from './js/services/recognition.js';
 import { OpenAIService } from './js/services/openai.js';
+import { CameraService } from './js/services/camera.js';
 import { CommandManager } from './js/commands/index.js';
 import { UIService } from './js/services/ui.js';
 import { HistoryManager } from './js/utils/history.js';
@@ -43,9 +44,16 @@ class AssistentMultiNegociosApp {
         this.speechService = new SpeechService();
         this.recognitionService = new RecognitionService();
         this.openAIService = new OpenAIService(apiKey || "YOUR_API_KEY_HERE");
+        this.cameraService = new CameraService();
         this.webSearchService = new WebSearchService();
         this.uiService = new UIService();
-        this.commandManager = new CommandManager(this.speechService, this.uiService, this.webSearchService);
+        this.commandManager = new CommandManager(
+            this.speechService, 
+            this.uiService, 
+            this.webSearchService,
+            this.cameraService,
+            this.openAIService
+        );
         this.isProcessing = false;
         this.config = { OPENAI_API_KEY: apiKey };
         this.speakEnabled = true; // Controle de fala
