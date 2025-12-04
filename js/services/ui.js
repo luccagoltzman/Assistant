@@ -595,5 +595,210 @@ export class UIService {
         };
         document.addEventListener('keydown', handleEsc);
     }
+
+    /**
+     * Mostra a interface de leitura de documentos
+     * @param {CameraService} cameraService
+     * @param {OpenAIService} openAIService
+     * @param {SpeechService} speechService
+     * @param {boolean} shouldSpeak
+     */
+    showDocumentReaderInterface(cameraService, openAIService, speechService, shouldSpeak) {
+        // Remove interface anterior se existir
+        const existingInterface = document.querySelector('#document-reader-interface');
+        if (existingInterface) {
+            existingInterface.remove();
+        }
+
+        // Cria a interface de leitura de documentos
+        const documentInterface = document.createElement('div');
+        documentInterface.id = 'document-reader-interface';
+        documentInterface.className = 'camera-interface';
+        documentInterface.innerHTML = `
+            <div class="camera-modal document-reader-modal">
+                <div class="camera-header">
+                    <h3><i class="fas fa-file-text"></i> Leitura de Documentos (OCR)</h3>
+                    <button class="camera-close" id="document-close" aria-label="Fechar leitor de documentos">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="camera-content">
+                    <div class="document-instructions">
+                        <div class="instruction-item">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Posicione o documento em uma superfície plana e bem iluminada</span>
+                        </div>
+                        <div class="instruction-item">
+                            <i class="fas fa-camera"></i>
+                            <span>Mantenha a câmera estável e o documento em foco</span>
+                        </div>
+                        <div class="instruction-item">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Certifique-se de que todo o texto está visível na tela</span>
+                        </div>
+                    </div>
+                    <div class="camera-preview-container">
+                        <video id="document-video" autoplay playsinline></video>
+                        <div class="camera-overlay">
+                            <div class="camera-status" id="document-status">Iniciando câmera...</div>
+                        </div>
+                    </div>
+                    <div class="camera-controls">
+                        <button id="document-capture" class="camera-btn capture-btn" disabled>
+                            <i class="fas fa-camera"></i>
+                            <span>Capturar e Ler Documento</span>
+                        </button>
+                        <button id="document-stop" class="camera-btn stop-btn">
+                            <i class="fas fa-stop"></i>
+                            <span>Fechar</span>
+                        </button>
+                    </div>
+                    <div class="camera-result document-result" id="document-result" style="display: none;">
+                        <div class="document-result-header">
+                            <h4><i class="fas fa-file-text"></i> Texto Extraído do Documento:</h4>
+                            <button class="copy-text-btn" id="copy-text-btn" title="Copiar texto">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="document-result-content" id="document-result-content"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-overlay-background" id="document-overlay-bg"></div>
+        `;
+
+        document.body.appendChild(documentInterface);
+
+        // Elementos da interface
+        const videoElement = document.getElementById('document-video');
+        const captureBtn = document.getElementById('document-capture');
+        const stopBtn = document.getElementById('document-stop');
+        const closeBtn = document.getElementById('document-close');
+        const overlayBg = document.getElementById('document-overlay-bg');
+        const statusDiv = document.getElementById('document-status');
+        const resultDiv = document.getElementById('document-result');
+        const resultContent = document.getElementById('document-result-content');
+        const copyBtn = document.getElementById('copy-text-btn');
+
+        // Função para fechar a interface
+        const closeDocumentReader = () => {
+            cameraService.stop();
+            documentInterface.remove();
+        };
+
+        // Event listeners
+        closeBtn.addEventListener('click', closeDocumentReader);
+        stopBtn.addEventListener('click', closeDocumentReader);
+        overlayBg.addEventListener('click', closeDocumentReader);
+
+        // Inicia a câmera
+        cameraService.start(videoElement)
+            .then(() => {
+                statusDiv.textContent = 'Câmera ativa - Posicione o documento';
+                statusDiv.className = 'camera-status success';
+                captureBtn.disabled = false;
+            })
+            .catch((error) => {
+                statusDiv.textContent = error.message || 'Erro ao iniciar câmera';
+                statusDiv.className = 'camera-status error';
+                captureBtn.disabled = true;
+                
+                if (shouldSpeak) {
+                    speechService.speak(error.message || 'Erro ao iniciar câmera');
+                }
+            });
+
+        // Captura e leitura do documento
+        captureBtn.addEventListener('click', async () => {
+            if (cameraService.isActive) {
+                try {
+                    captureBtn.disabled = true;
+                    statusDiv.textContent = 'Capturando documento...';
+                    statusDiv.className = 'camera-status processing';
+
+                    // Captura a foto com alta qualidade para melhor OCR
+                    const base64 = await cameraService.capturePhoto(0.95);
+                    const imageBase64 = cameraService.base64ToApiFormat(base64);
+
+                    statusDiv.textContent = 'Extraindo texto do documento...';
+                    
+                    // Extrai o texto usando OCR
+                    const extractedText = await openAIService.extractTextFromDocument(imageBase64);
+
+                    // Mostra resultado formatado
+                    resultDiv.style.display = 'block';
+                    const escapedText = this.escapeHtml(extractedText);
+                    resultContent.innerHTML = `<pre class="document-text">${escapedText}</pre>`;
+                    
+                    // Armazena o texto para cópia
+                    resultContent.dataset.text = extractedText;
+                    
+                    statusDiv.textContent = 'Texto extraído com sucesso!';
+                    statusDiv.className = 'camera-status success';
+
+                    // Fala o resultado se habilitado (apenas uma parte)
+                    if (shouldSpeak) {
+                        const shortText = extractedText.length > 300 
+                            ? extractedText.substring(0, 300) + '...' 
+                            : extractedText;
+                        await speechService.speak(`Texto extraído: ${shortText}`);
+                    }
+
+                    // Scroll para o resultado
+                    setTimeout(() => {
+                        resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 100);
+
+                } catch (error) {
+                    console.error('Erro ao ler documento:', error);
+                    statusDiv.textContent = 'Erro ao ler documento. Verifique sua chave API e tente novamente.';
+                    statusDiv.className = 'camera-status error';
+                    
+                    if (shouldSpeak) {
+                        speechService.speak('Erro ao ler documento. Verifique sua chave API da OpenAI.');
+                    }
+                } finally {
+                    captureBtn.disabled = false;
+                }
+            }
+        });
+
+        // Copiar texto
+        copyBtn.addEventListener('click', () => {
+            const text = resultContent.dataset.text || resultContent.textContent;
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    copyBtn.title = 'Texto copiado!';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                        copyBtn.title = 'Copiar texto';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Erro ao copiar:', err);
+                });
+            }
+        });
+
+        // Fecha com ESC
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && documentInterface.parentNode) {
+                closeDocumentReader();
+                document.removeEventListener('keydown', handleEsc);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+    }
+
+    /**
+     * Escapa HTML para prevenir XSS
+     * @param {string} text
+     * @returns {string}
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 }
 

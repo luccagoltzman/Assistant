@@ -1688,3 +1688,155 @@ body.dark-mode .stop-btn:hover {
         display: none;
     }
 }
+
+/* Interface de Leitura de Documentos */
+.document-reader-modal {
+    max-width: 900px;
+}
+
+.document-instructions {
+    background: rgba(0, 188, 212, 0.1);
+    border: 2px solid rgba(0, 188, 212, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.instruction-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.instruction-item i {
+    color: var(--primary-color);
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+.document-result {
+    background: rgba(0, 188, 212, 0.05);
+    border: 2px solid rgba(0, 188, 212, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.document-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.document-result-header h4 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.copy-text-btn {
+    background: rgba(0, 188, 212, 0.1);
+    border: 2px solid rgba(0, 188, 212, 0.3);
+    color: var(--primary-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    font-size: 16px;
+}
+
+.copy-text-btn:hover {
+    background: rgba(0, 188, 212, 0.2);
+    transform: scale(1.1);
+}
+
+.document-result-content {
+    color: var(--text-light);
+    line-height: 1.8;
+    font-size: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+}
+
+.document-text {
+    margin: 0;
+    padding: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-light);
+    background: transparent;
+    border: none;
+}
+
+/* Modo escuro para leitor de documentos */
+body.dark-mode .document-instructions {
+    background: rgba(0, 188, 212, 0.15);
+    border-color: rgba(0, 188, 212, 0.3);
+}
+
+body.dark-mode .instruction-item {
+    color: var(--text-dark);
+}
+
+body.dark-mode .document-result-content {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dark);
+}
+
+body.dark-mode .document-text {
+    color: var(--text-dark);
+}
+
+body.dark-mode .copy-text-btn {
+    background: rgba(0, 188, 212, 0.2);
+    border-color: rgba(0, 188, 212, 0.4);
+    color: var(--primary-color);
+}
+
+body.dark-mode .copy-text-btn:hover {
+    background: rgba(0, 188, 212, 0.3);
+}
+
+/* Scrollbar customizada para área de texto */
+.document-result-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.document-result-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.document-result-content::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.document-result-content::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+body.dark-mode .document-result-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}

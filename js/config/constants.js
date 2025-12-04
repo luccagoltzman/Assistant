@@ -42,6 +42,7 @@ export const COMMANDS = {
     CALCULATOR: ['abrir calculadora', 'abrir a calculadora'],
     NOTEPAD: ['abrir bloco de notas', 'abrir bloco'],
     CAMERA: ['abrir câmera', 'abrir a câmera'],
+    READ_DOCUMENT: ['ler documento', 'reconhecer documento', 'ler texto', 'ocr', 'digitalizar documento'],
     SETTINGS: ['abrir configurações', 'abrir as configurações'],
 };
 

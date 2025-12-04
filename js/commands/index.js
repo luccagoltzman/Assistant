@@ -195,6 +195,11 @@ export class CommandManager {
             return true;
         }
 
+        if (this.matches(lowerMessage, COMMANDS.READ_DOCUMENT)) {
+            await this.handleReadDocument();
+            return true;
+        }
+
         if (this.matches(lowerMessage, COMMANDS.SETTINGS)) {
             await this.handleOpenApp('settings');
             return true;
@@ -452,6 +457,25 @@ export class CommandManager {
         this.uiService.showCameraInterface(this.cameraService, this.openAIService, this.speechService, this.shouldSpeak);
     }
 
+    async handleReadDocument() {
+        if (!this.cameraService || !this.openAIService) {
+            await this.speakIfEnabled('Serviços de câmera ou IA não disponíveis');
+            this.uiService.updateContent('⚠️ Serviços de câmera ou IA não disponíveis. Verifique a configuração.');
+            return;
+        }
+
+        // Verifica se a câmera está disponível
+        const isAvailable = await this.cameraService.isAvailable();
+        if (!isAvailable) {
+            await this.speakIfEnabled('Câmera não encontrada no dispositivo');
+            this.uiService.updateContent('⚠️ Nenhuma câmera encontrada no dispositivo.');
+            return;
+        }
+
+        // Mostra interface de documento
+        this.uiService.showDocumentReaderInterface(this.cameraService, this.openAIService, this.speechService, this.shouldSpeak);
+    }
+
     async handleHistory() {
         const history = HistoryManager.getAll();
         if (history.length === 0) {
@@ -522,6 +546,8 @@ export class CommandManager {
             "abrir calculadora",
             "abrir bloco de notas",
             "abrir câmera",
+            "ler documento",
+            "reconhecer documento",
             "abrir configurações",
             "histórico",
             "limpar histórico"
